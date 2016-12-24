@@ -550,6 +550,17 @@ void CompilerMSL::emit_header()
 	statement("");
 	statement("using namespace metal;");
 	statement("");
+
+	// Yuriy TODO: Perhaps it's better to use the custom functions for this instead
+	statement("template <typename T> void imageStore(T t, int2 p, float4 c);");
+	statement("template <typename T> void imageStore(T t, int2 p, float4 c) { t.write(c, uint2((uint)p.x, (uint)p.y)); }");
+
+	statement("template <typename T> float4 imageLoad(T t, int2 p);");
+	statement("template <typename T> float4 imageLoad(T t, int2 p) { return t.read(uint2((uint)p.x, (uint)p.y)); }");
+
+	statement("template <typename T> int2 imageSize(T t);");
+	statement("template <typename T> int2 imageSize(T t) { return int2((int)t.get_width(), (int)t.get_height()); }");
+	statement("");
 }
 
 // Emits any needed custom function bodies.
@@ -1796,7 +1807,12 @@ string CompilerMSL::image_type_glsl(const SPIRType &type)
 
 	// Append the pixel type
 	auto &img_pix_type = get<SPIRType>(img_type.type);
-	img_type_name += "<" + type_to_glsl(img_pix_type) + ">";
+	img_type_name += "<" + type_to_glsl(img_pix_type);
+	if (img_type.sampled == 2)
+	{
+		img_type_name += ", access::write";
+	}
+	img_type_name += ">";
 
 	return img_type_name;
 }
@@ -1885,6 +1901,13 @@ string CompilerMSL::builtin_qualifier(BuiltIn builtin)
 			return "depth(any)";
 	}
 
+	// Compute
+
+	case BuiltInNumWorkgroups:
+		return "threadgroups_per_grid";
+	case BuiltInGlobalInvocationId:
+		return "thread_position_in_grid";
+
 	default:
 		return "unsupported-built-in";
 	}
@@ -1924,6 +1947,12 @@ string CompilerMSL::builtin_type_decl(BuiltIn builtin)
 		return "uint";
 	case BuiltInSampleMask:
 		return "uint";
+
+	// Compute
+	case BuiltInNumWorkgroups:
+		return "uint3";
+	case BuiltInGlobalInvocationId:
+		return "uint3";
 
 	default:
 		return "unsupported-built-in-type";
