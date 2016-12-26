@@ -1808,9 +1808,16 @@ string CompilerMSL::image_type_glsl(const SPIRType &type)
 	// Append the pixel type
 	auto &img_pix_type = get<SPIRType>(img_type.type);
 	img_type_name += "<" + type_to_glsl(img_pix_type);
+
+	// Append read-write access qualifier to storage images.
+	// The 'sampled' field of the image op indicates whether or not image is used with a sampler:
+	// - 0 indicates this is only known at run time, not at compile time
+	// - 1 indicates will be used with sampler
+	// - 2 indicates will be used without a sampler (a storage image)
+	// https://www.khronos.org/registry/spir-v/specs/1.0/SPIRV.html#OpTypeImage
 	if (img_type.sampled == 2)
 	{
-		img_type_name += ", access::write";
+		img_type_name += ", access::read_write";
 	}
 	img_type_name += ">";
 
