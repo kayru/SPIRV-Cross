@@ -868,6 +868,33 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, bool is_decl)
 	statement(decl, (is_decl ? ";" : ""));
 }
 
+static string get_fetch_coord_type(spv::Dim dim)
+{
+	string result;
+	switch (dim)
+	{
+	case spv::DimBuffer:
+		break;
+	case Dim1D:
+		result = "uint";
+		break;
+
+	case Dim2D:
+		result = "uint2";
+		break;
+
+	case Dim3D:
+	case DimCube:
+		result = "uint3";
+		break;
+
+	default:
+		break;
+	}
+
+	return result;
+}
+
 // Emit a texture operation
 void CompilerMSL::emit_texture_op(const Instruction &i)
 {
@@ -985,6 +1012,8 @@ void CompilerMSL::emit_texture_op(const Instruction &i)
 	string tex_coords = coord_expr;
 	string array_coord;
 
+	const bool flip_frag_y = msl_config.flip_frag_y && !fetch;
+
 	switch (img_type.dim)
 	{
 	case spv::DimBuffer:
@@ -1004,7 +1033,7 @@ void CompilerMSL::emit_texture_op(const Instruction &i)
 		break;
 
 	case Dim2D:
-		if (msl_config.flip_frag_y)
+		if (flip_frag_y)
 		{
 			string coord_x = coord_expr + ".x";
 			remove_duplicate_swizzle(coord_x);
@@ -1028,7 +1057,7 @@ void CompilerMSL::emit_texture_op(const Instruction &i)
 
 	case Dim3D:
 	case DimCube:
-		if (msl_config.flip_frag_y)
+		if (flip_frag_y)
 		{
 			string coord_x = coord_expr + ".x";
 			remove_duplicate_swizzle(coord_x);
@@ -1055,6 +1084,12 @@ void CompilerMSL::emit_texture_op(const Instruction &i)
 	default:
 		break;
 	}
+
+	if (fetch)
+	{
+		tex_coords = get_fetch_coord_type(img_type.dim) + "(" + tex_coords + ")";
+	}
+
 	expr += tex_coords;
 
 	// Add texture array index
@@ -1122,7 +1157,7 @@ void CompilerMSL::emit_texture_op(const Instruction &i)
 		switch (img_type.dim)
 		{
 		case Dim2D:
-			if (msl_config.flip_frag_y)
+			if (flip_frag_y)
 			{
 				string coord_x = offset_expr + ".x";
 				remove_duplicate_swizzle(coord_x);
@@ -1140,7 +1175,7 @@ void CompilerMSL::emit_texture_op(const Instruction &i)
 			break;
 
 		case Dim3D:
-			if (msl_config.flip_frag_y)
+			if (flip_frag_y)
 			{
 				string coord_x = offset_expr + ".x";
 				remove_duplicate_swizzle(coord_x);
