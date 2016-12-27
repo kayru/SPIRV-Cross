@@ -2068,6 +2068,9 @@ size_t CompilerMSL::get_declared_type_size(uint32_t type_id, uint64_t dec_mask) 
 // If the opcode requires a bespoke custom function be output, remember it.
 bool CompilerMSL::CustomFunctionHandler::handle(Op opcode, const uint32_t *args, uint32_t length)
 {
+	// Silence unused variable warnings.
+	(void)args;	(void)length;
+
 	switch (opcode)
 	{
 	case OpFMod:
